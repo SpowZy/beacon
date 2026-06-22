@@ -1,28 +1,46 @@
 # Beacon
 
+[![ci](https://github.com/SpowZy/beacon/actions/workflows/ci.yml/badge.svg)](https://github.com/SpowZy/beacon/actions/workflows/ci.yml)
+[![python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 A privacy first agentic router for hyperlocal community alerts.
 
 Beacon takes a raw local alert, triages it, strips every personal identifier,
 routes it by geography to the right residents, and verifies the result before
-anything is delivered. It is a small, readable model of the AI brain a
-community safety product needs: simple, consistent, and trustworthy.
+anything is delivered. It is a small, readable model of the AI layer a community
+safety product needs: simple, consistent, and trustworthy.
 
-It runs from a clean clone with no API key, no downloaded model, and no
-network. The default language backend is a deterministic mock, so the whole
-pipeline is reproducible and free. Flip one environment variable to run the
-same code on a local Ollama model or on Claude.
+It runs from a clean clone with no API key, no downloaded model, and no network.
+The default language backend is a deterministic mock, so the whole pipeline is
+reproducible and free. Flip one environment variable to run the same code on a
+local Ollama model or on Claude.
 
-## Why this design
+## Pipeline
 
-- Agentic orchestration with LangGraph: a typed state graph with a conditional
-  trust gate, not a single prompt.
-- Privacy as a first class agent: alerts are classified P2 (community level, no
-  PII) and scrubbed before they move. A differential privacy helper is included
-  for community level aggregates.
-- A verification gate carried over from evaluating frontier models: a confident
-  wrong message is the real risk in a safety product, so it is blocked.
-- Pluggable models: mock, a local small model via Ollama, or Claude. That is
-  LLM and SLM orchestration in practice.
+```mermaid
+flowchart LR
+  A[raw alert] --> T[triage]
+  T --> P[privacy and governance]
+  P --> R[geo routing]
+  R --> C[compose with retrieval]
+  C --> V[verify]
+  V -- approved --> D[deliver]
+  V -- blocked --> H[hold]
+```
+
+Each step is an agent with one responsibility, orchestrated as a typed LangGraph
+state graph. The conditional edge after verify decides delivery or hold.
+
+## Results
+
+![Beacon results](docs/results.png)
+
+Left: evaluation metrics on a labelled set, gated in CI. The PII leak rate is
+zero by construction, because the privacy agent runs before anything is composed
+and the verifier blocks any message that still carries an identifier. Right: the
+severity scaled routing radius, so a critical alert reaches a wider ring of
+residents than an advisory.
 
 ## Quickstart
 
@@ -33,14 +51,8 @@ pip install -e ".[dev]"
 python -m beacon.demo
 ```
 
-No key is needed. You will see each synthetic alert flow through triage,
-privacy, routing, composition, and verification, with the full trace.
-
-Run the tests:
-
-```
-pytest -q
-```
+No key is needed. Run the tests with `pytest -q` and the evaluation with
+`python -m beacon.eval`.
 
 Use a real local model (free, after `ollama pull llama3.2`):
 
@@ -57,37 +69,44 @@ set BEACON_ANTHROPIC_API_KEY=your_key
 python -m beacon.demo
 ```
 
-## Pipeline
+## Why this design
 
-```
-raw alert
-  -> triage      severity and category
-  -> privacy     redact PII, classify P2, write an audit id     (the DARS layer)
-  -> routing     geographic match to homes and watch zones
-  -> compose     grounded message plus retrieved guidance       (the RAG step)
-  -> verify      no PII, grounded in source, routing sane        (the trust gate)
-  -> deliver or hold
-```
+- Agentic orchestration with LangGraph: a typed state graph with a conditional
+  trust gate, not a single prompt.
+- Privacy as a first class agent: alerts are classified P2 (community level, no
+  PII) and scrubbed before they move. A differential privacy helper covers
+  community level aggregates, the shape of a privacy preserving B2B data product.
+- A verification gate carried over from evaluating frontier models: a confident
+  wrong message is the real risk in a safety product, so it is blocked.
+- Pluggable models: mock, a local small model via Ollama, or Claude. That is LLM
+  and SLM orchestration in practice.
 
 ## Synthetic by design
 
-The data in `beacon/synth.py` is fake and clearly labelled. Synthetic data
-keeps the demo a one command clone and run, with full control over edge cases
-such as a critical alert that carries personal details and must be scrubbed
-before routing. The same interfaces accept real open data, so swapping in a
-government open data feed is a local change, not a rewrite.
+The data in `beacon/synth.py` is fake and clearly labelled. Synthetic data keeps
+the demo a one command clone and run, with full control over edge cases such as a
+critical alert that carries personal details. The same interfaces accept real
+open data, so swapping in a government open data feed is a local change.
 
-## Mapping to a community platform
+## Service
 
-- Address based alerts and watch zones map to the routing agent.
-- Community level intelligence with no PII maps to the privacy agent and the
-  differential privacy helper.
-- Trustworthy conversational output maps to compose plus verify.
+```
+pip install -e ".[api]"
+uvicorn beacon.api:app --reload
+```
 
-## Notes on the state of the art
+POST /alert runs the pipeline. GET /community/{suburb}/insight returns a
+differentially private community aggregate.
 
-Orchestration uses LangGraph, the current standard for stateful, auditable
-agent graphs. The retrieval step is written so it can grow into adaptive and
-corrective RAG. Privacy uses the Laplace mechanism, the differential privacy
-approach used in production by the US Census Bureau and others. A longer write
-up with citations lives in `docs/architecture.md`.
+## Regenerate the results figure
+
+```
+pip install -e ".[viz]"
+python -m beacon.plots
+```
+
+More detail and the references are in `docs/architecture.md`.
+
+## License
+
+MIT, see [LICENSE](LICENSE).
