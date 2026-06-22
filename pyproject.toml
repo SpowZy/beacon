@@ -9,6 +9,7 @@ description = "A privacy first agentic router for hyperlocal community alerts"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
+authors = [{ name = "SpowZy" }]
 dependencies = [
   "langgraph>=0.2",
   "langchain-core>=0.3",
