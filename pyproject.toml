@@ -8,6 +8,7 @@ version = "0.1.0"
 description = "A privacy first agentic router for hyperlocal community alerts"
 readme = "README.md"
 requires-python = ">=3.11"
+license = { text = "MIT" }
 dependencies = [
   "langgraph>=0.2",
   "langchain-core>=0.3",
@@ -19,6 +20,7 @@ dependencies = [
 api = ["fastapi>=0.110", "uvicorn>=0.29"]
 anthropic = ["anthropic>=0.39"]
 ollama = ["ollama>=0.3"]
+viz = ["matplotlib>=3.7"]
 dev = ["pytest>=8.0"]
 
 [project.scripts]
