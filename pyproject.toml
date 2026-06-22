@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "beacon"
+version = "0.1.0"
+description = "A privacy first agentic router for hyperlocal community alerts"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "langgraph>=0.2",
+  "langchain-core>=0.3",
+  "pydantic>=2.6",
+  "pydantic-settings>=2.2",
+]
+
+[project.optional-dependencies]
+api = ["fastapi>=0.110", "uvicorn>=0.29"]
+anthropic = ["anthropic>=0.39"]
+ollama = ["ollama>=0.3"]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+beacon-demo = "beacon.demo:main"
+
+[tool.setuptools.packages.find]
+include = ["beacon*"]
